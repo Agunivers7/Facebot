@@ -1,5 +1,6 @@
 import logging
-from telegram.ext import Updater, MessageHandler, Filters
+from telegram.ext import Updater, MessageHandler, CommandHandler
+from telegram import PhotoSize
 from PIL import Image
 import requests
 from io import BytesIO
@@ -48,20 +49,21 @@ def swap_faces(image_path1, image_path2):
         return None
 
 
-# Define the handler function for receiving messages
-def handle_message(update, context):
+# Define the handler function for receiving photos
+def handle_photo(update, context):
     try:
-        # Get the photos from the message
-        if len(update.message.photo) >= 2:
-            photo1 = update.message.photo[-2]
-            photo2 = update.message.photo[-1]
-        else:
+        # Get the two most recent photos from the message
+        photos = update.message.photo
+        if len(photos) < 2:
             update.message.reply_text('Please provide two photos.')
             return
 
-        file_id1 = photo1.file_id
+        # Get the file IDs of the photos
+        file_id1 = photos[-2].file_id
+        file_id2 = photos[-1].file_id
+
+        # Get the file objects from the file IDs
         file1 = context.bot.get_file(file_id1)
-        file_id2 = photo2.file_id
         file2 = context.bot.get_file(file_id2)
 
         # Download the photos
@@ -91,9 +93,9 @@ def main():
     updater = Updater(token, use_context=True)
     dispatcher = updater.dispatcher
 
-    # Set up the message handler
-    message_handler = MessageHandler(Filters.photo, handle_message)
-    dispatcher.add_handler(message_handler)
+    # Set up the message handler for photos
+    photo_handler = MessageHandler(PhotoSize, handle_photo)
+    dispatcher.add_handler(photo_handler)
 
     # Start the bot
     updater.start_polling()
